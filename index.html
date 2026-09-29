@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>날씨알리미</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <h1>날씨알리미</h1>
+  <p class="subtitle">오늘의 날씨를 알려주면, 일기예보를 만들어드려요</p>
+
+  <button id="plusBtn" class="chatbar">
+    <span class="chatbar-icon">+</span>
+    <span class="chatbar-text">+ 를 눌러 오늘의 기상요소를 입력해보세요</span>
+  </button>
+
+  <div id="formPanel" class="form-panel" hidden>
+    <div class="form-grid">
+      <div class="field">
+        <label for="region">지역</label>
+        <input type="text" id="region" placeholder="경기도 용인시">
+      </div>
+      <div class="field">
+        <label for="tempHigh">최고기온 (도)</label>
+        <input type="number" id="tempHigh" placeholder="26">
+      </div>
+      <div class="field">
+        <label for="tempLow">최저기온 (도)</label>
+        <input type="number" id="tempLow" placeholder="16">
+      </div>
+      <div class="field">
+        <label for="wind">바람(풍향)</label>
+        <input type="text" id="wind" placeholder="북서풍">
+      </div>
+      <div class="field">
+        <label for="humidity">습도 (%)</label>
+        <input type="number" id="humidity" placeholder="70">
+      </div>
+      <div class="field">
+        <label for="cloud">구름의 양</label>
+        <input type="text" id="cloud" placeholder="많음">
+      </div>
+      <div class="field">
+        <label for="rain">강수량 (mm)</label>
+        <input type="number" id="rain" placeholder="5">
+      </div>
+    </div>
+    <p id="formError" class="form-error" hidden>모든 칸을 채워주세요.</p>
+    <button id="genBtn" class="primary-btn">대본 만들기</button>
+  </div>
+
+  <div id="resultArea" class="result-area" hidden>
+    <div id="loadingBox" class="loading-box">
+      <span>대본 만드는 중</span>
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+    <div id="resultBox" class="result-box" hidden></div>
+  </div>
+
+  <button id="fab" class="fab" aria-label="궁금한 점 물어보기">
+    <span>?</span>
+  </button>
+
+  <div id="chatPanel" class="chat-panel" hidden>
+    <div class="chat-panel-header">
+      <p>날씨 도우미 챗봇</p>
+      <button id="closeChat" aria-label="닫기">✕</button>
+    </div>
+    <div id="chatQuickBtns" class="chat-quick-btns"></div>
+    <div id="chatAnswer" class="chat-answer">궁금한 걸 눌러보거나 아래에 물어보세요!</div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="궁금한 걸 물어보세요">
+      <button id="chatAskBtn">물어보기</button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

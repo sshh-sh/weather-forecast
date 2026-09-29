@@ -28,6 +28,10 @@ function josaEunNeun(word) {
   return hasBatchim(word) ? "은" : "는";
 }
 
+function josaRoEuro(word) {
+  return hasBatchim(word) ? "으로" : "로";
+}
+
 function fillTemplate(template, values) {
   let result = template;
   for (const key in values) {
@@ -69,7 +73,10 @@ function buildScript(data) {
   const diffLine = fillTemplate(pickFromPool(DIFF_LINES, "diff"), { 일교차: diff });
   const windLine = fillTemplate(pickFromPool(WIND_LINES, "wind"), { 풍향: wind });
   const humidityLine = fillTemplate(pickFromPool(HUMIDITY_LINES, "humidity"), { 습도: humidity });
-  const cloudLine = fillTemplate(pickFromPool(CLOUD_LINES, "cloud"), { 구름양: cloud });
+  const cloudLine = fillTemplate(pickFromPool(CLOUD_LINES, "cloud"), {
+    구름양: cloud,
+    로으로: josaRoEuro(cloud)
+  });
   const rainLine = fillTemplate(pickFromPool(RAIN_LINES, "rain"), { 강수량: rain });
   const tipLine = pickTip(avgTemp, rain, diff);
   const foodLine = pickFood(avgTemp);

@@ -47,6 +47,10 @@
         <label for="rain">강수량 (mm)</label>
         <input type="number" id="rain" placeholder="5">
       </div>
+      <div class="field">
+        <label for="rainChance">앞으로 강수확률 (%)</label>
+        <input type="number" id="rainChance" placeholder="60" min="0" max="100">
+      </div>
     </div>
     <p id="formError" class="form-error" hidden>모든 칸을 채워주세요.</p>
     <button id="genBtn" class="primary-btn">대본 만들기</button>
@@ -78,7 +82,7 @@
   </div>
 </div>
 
-<script src="data.js"></script>
-<script src="script.js"></script>
+<script src="data.js?v=3"></script>
+<script src="script.js?v=3"></script>
 </body>
 </html>

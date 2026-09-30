@@ -57,8 +57,9 @@ function pickFood(avgTemp) {
   return pickFromPool(FOOD_COOL, "foodCool");
 }
 
+
 function buildScript(data) {
-  const { region, tempHigh, tempLow, wind, humidity, cloud, rain } = data;
+  const { region, tempHigh, tempLow, wind, humidity, cloud, rain, rainChance } = data;
   const avgTemp = Math.round((tempHigh + tempLow) / 2);
   const diff = tempHigh - tempLow;
 
@@ -81,6 +82,9 @@ function buildScript(data) {
     로으로: josaRoEuro(cloud)
   });
   const rainLine = fillTemplate(pickFromPool(RAIN_LINES, "rain"), { 강수량: rain });
+  const rainChanceLine = fillTemplate(pickFromPool(RAIN_CHANCE_LINES, "rainChance"), {
+    강수확률: rainChance
+  });
   const tipLine = pickTip(avgTemp, rain, diff);
   const foodLine = pickFood(avgTemp);
   const closingLine = pickFromPool(CLOSING_LINES, "closing");
@@ -89,6 +93,11 @@ function buildScript(data) {
   const moodLine = isBadWeather
     ? pickFromPool(MOOD_GOOD_LINES, "moodGood")
     : pickFromPool(MOOD_BAD_LINES, "moodBad");
+
+  // 서술 모순 오류 1개: 강수확률과 반대되는 단정 문장을 일부러 삽입
+  const rainChanceWrongLine = rainChance >= 50
+    ? pickFromPool(RAIN_CHANCE_WRONG_DRY, "rainChanceWrongDry")
+    : pickFromPool(RAIN_CHANCE_WRONG_WET, "rainChanceWrongWet");
 
   return [
     greeting,
@@ -102,6 +111,8 @@ function buildScript(data) {
     moodLine,
     tipLine,
     foodLine,
+    rainChanceLine,
+    rainChanceWrongLine,
     closingLine
   ].join(" ");
 }
@@ -145,6 +156,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const humidityInput = document.getElementById("humidity");
   const cloudInput = document.getElementById("cloud");
   const rainInput = document.getElementById("rain");
+  const rainChanceInput = document.getElementById("rainChance");
 
   const resultArea = document.getElementById("resultArea");
   const loadingBox = document.getElementById("loadingBox");
@@ -162,9 +174,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const humidity = humidityInput.value;
     const cloud = cloudInput.value.trim();
     const rain = rainInput.value;
+    const rainChance = rainChanceInput.value;
 
-    if (!region || tempHigh === "" || tempLow === "" || !wind || humidity === "" || !cloud || rain === "") {
+    if (!region || tempHigh === "" || tempLow === "" || !wind || humidity === "" || !cloud || rain === "" || rainChance === "") {
       formError.textContent = "모든 칸을 채워주세요.";
+      formError.hidden = false;
+      return;
+    }
+    if (Number(rainChance) < 0 || Number(rainChance) > 100) {
+      formError.textContent = "강수확률은 0에서 100 사이로 입력해주세요.";
       formError.hidden = false;
       return;
     }
@@ -182,7 +200,8 @@ document.addEventListener("DOMContentLoaded", function () {
       wind,
       humidity: Number(humidity),
       cloud,
-      rain: Number(rain)
+      rain: Number(rain),
+      rainChance: Number(rainChance)
     };
 
     const script = buildScript(data);

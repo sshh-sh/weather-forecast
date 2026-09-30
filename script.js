@@ -69,7 +69,10 @@ function buildScript(data) {
     지역: region,
     은는: josaEunNeun(region)
   });
-  const tempLine = fillTemplate(pickFromPool(TEMP_LINES, "temp"), { 기온: avgTemp });
+  const tempLine = fillTemplate(pickFromPool(TEMP_LINES, "temp"), {
+    최고기온: tempHigh,
+    최저기온: tempLow
+  });
   const diffLine = fillTemplate(pickFromPool(DIFF_LINES, "diff"), { 일교차: diff });
   const windLine = fillTemplate(pickFromPool(WIND_LINES, "wind"), { 풍향: wind });
   const humidityLine = fillTemplate(pickFromPool(HUMIDITY_LINES, "humidity"), { 습도: humidity });

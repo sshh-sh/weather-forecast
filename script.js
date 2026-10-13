@@ -84,7 +84,7 @@ function pickFood(humidity, cloud) {
 }
 
 function buildScript(data) {
-  const { region, wind, humidity, cloud, rain, rainChance } = data;
+  const { region, wind, humidity, cloud, rain } = data;
 
   const parts = [];
 
@@ -121,16 +121,6 @@ function buildScript(data) {
 
   parts.push(pickTip(humidity, rain, cloud));
   parts.push(pickFood(humidity, cloud));
-
-  if (rainChance !== null) {
-    parts.push(fillTemplate(pickFromPool(RAIN_CHANCE_LINES, "rainChance"), { 강수확률: rainChance }));
-    // 서술 모순 오류: 강수확률과 반대되는 단정 문장을 일부러 삽입
-    const rainChanceWrongLine = rainChance >= 50
-      ? pickFromPool(RAIN_CHANCE_WRONG_DRY, "rainChanceWrongDry")
-      : pickFromPool(RAIN_CHANCE_WRONG_WET, "rainChanceWrongWet");
-    parts.push(rainChanceWrongLine);
-  }
-
   parts.push(pickFromPool(CLOSING_LINES, "closing"));
 
   return parts.join(" ");
@@ -191,7 +181,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const humidityInput = document.getElementById("humidity");
   const cloudInput = document.getElementById("cloud");
   const rainInput = document.getElementById("rain");
-  const rainChanceInput = document.getElementById("rainChance");
 
   const resultArea = document.getElementById("resultArea");
   const loadingBox = document.getElementById("loadingBox");
@@ -207,20 +196,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const humidityRaw = humidityInput.value;
     const cloud = cloudInput.value.trim();
     const rainRaw = rainInput.value;
-    const rainChanceRaw = rainChanceInput.value;
 
     if (!region) {
       formError.textContent = "지역은 꼭 입력해주세요.";
       formError.hidden = false;
       return;
     }
-    if (!wind && humidityRaw === "" && !cloud && rainRaw === "" && rainChanceRaw === "") {
-      formError.textContent = "바람, 습도, 구름의 양, 강수량, 강수확률 중 최소 한 가지는 입력해주세요.";
-      formError.hidden = false;
-      return;
-    }
-    if (rainChanceRaw !== "" && (Number(rainChanceRaw) < 0 || Number(rainChanceRaw) > 100)) {
-      formError.textContent = "강수확률은 0에서 100 사이로 입력해주세요.";
+    if (!wind && humidityRaw === "" && !cloud && rainRaw === "") {
+      formError.textContent = "바람, 습도, 구름의 양, 강수량 중 최소 한 가지는 입력해주세요.";
       formError.hidden = false;
       return;
     }
@@ -231,8 +214,7 @@ document.addEventListener("DOMContentLoaded", function () {
       wind: wind || null,
       humidity: humidityRaw === "" ? null : Number(humidityRaw),
       cloud: cloud || null,
-      rain: rainRaw === "" ? null : Number(rainRaw),
-      rainChance: rainChanceRaw === "" ? null : Number(rainChanceRaw)
+      rain: rainRaw === "" ? null : Number(rainRaw)
     };
 
     const script = buildScript(data);

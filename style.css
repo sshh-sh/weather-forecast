@@ -269,3 +269,22 @@ h1 {
 @media (max-width: 420px) {
   .chat-panel { width: calc(100vw - 40px); }
 }
+
+.footer {
+  margin-top: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #999;
+  flex-wrap: wrap;
+}
+
+.version-badge {
+  background: #eef1f5;
+  color: #777;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}

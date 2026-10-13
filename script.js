@@ -88,11 +88,7 @@ function buildScript(data) {
 
   const parts = [];
 
-  parts.push(pickFromPool(GREETINGS, "greeting"));
-  parts.push(fillTemplate(pickFromPool(REGION_INTROS, "regionIntro"), {
-    지역: region,
-    은는: josaEunNeun(region)
-  }));
+  parts.push(fillTemplate(OPENING_LINE, { 지역: region }));
 
   if (humidity !== null) {
     parts.push(fillTemplate(pickFromPool(HUMIDITY_LINES, "humidity"), { 습도: humidity }));
@@ -119,8 +115,13 @@ function buildScript(data) {
     parts.push(moodLine);
   }
 
-  parts.push(pickTip(humidity, rain, cloud));
-  parts.push(pickFood(humidity, cloud));
+  // 생활 팁과 음식 추천 중 1개만 소개
+  if (Math.random() < 0.5) {
+    parts.push(pickTip(humidity, rain, cloud));
+  } else {
+    parts.push(pickFood(humidity, cloud));
+  }
+
   parts.push(pickFromPool(CLOSING_LINES, "closing"));
 
   return parts.join(" ");

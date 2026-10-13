@@ -10,7 +10,7 @@
 
 <div class="wrap">
   <h1>날씨알리미</h1>
-  <p class="subtitle">현재 날씨를 알려주면 무엇을 준비해야 하는지 알려드려요</p>
+  <p class="subtitle">기상요소를 입력하면<br>무엇을 준비해야 하는지 알려드려요</p>
 
   <button id="plusBtn" class="chatbar">
     <span class="chatbar-icon">+</span>
@@ -22,6 +22,10 @@
       <div class="field">
         <label for="region">지역 (필수)</label>
         <input type="text" id="region" placeholder="경기도 용인시">
+      </div>
+      <div class="field">
+        <label for="temp">기온 (도)</label>
+        <input type="number" id="temp" placeholder="23">
       </div>
       <div class="field">
         <label for="wind">바람(풍향)</label>
@@ -76,7 +80,7 @@
   </footer>
 </div>
 
-<script src="data.js?v=6"></script>
-<script src="script.js?v=6"></script>
+<script src="data.js?v=7"></script>
+<script src="script.js?v=7"></script>
 </body>
 </html>

@@ -44,11 +44,27 @@ function isCloudMany(cloudText) {
   return /많|흐림|잔뜩/.test(cloudText);
 }
 
-// 습도/강수/구름 입력 여부에 따라 생활 팁을 조합 (아무것도 없으면 기본 팁)
-function pickTip(humidity, rain, cloud) {
+// 기상요소를 한 문장으로 나열 (입력된 것만)
+function buildWeatherSummary(temp, wind, humidity, cloud, rain) {
+  const segments = [];
+  if (temp !== null) segments.push("기온은 " + temp + "도");
+  if (wind) segments.push("바람은 " + wind);
+  if (humidity !== null) segments.push("습도는 " + humidity + "%");
+  if (cloud) segments.push("구름의 양은 " + cloud);
+  if (rain !== null) segments.push("강수량은 " + rain + "mm");
+  if (segments.length === 0) return null;
+  return segments.join(", ") + "입니다.";
+}
+
+// 기온 우선, 없으면 습도 기준으로 옷차림 팁을 고르고, 강수/맑음 팁을 더함 (아무것도 없으면 기본 팁)
+function pickTip(temp, humidity, rain, cloud) {
   const tips = [];
 
-  if (humidity !== null) {
+  if (temp !== null) {
+    if (temp < 10) tips.push(pickFromPool(TIP_COLD, "tipCold"));
+    else if (temp >= 24) tips.push(pickFromPool(TIP_HOT, "tipHot"));
+    else tips.push(pickFromPool(TIP_MILD, "tipMild"));
+  } else if (humidity !== null) {
     if (humidity >= 60) tips.push(pickFromPool(TIP_HUMIDITY_HIGH, "tipHumidityHigh"));
     else tips.push(pickFromPool(TIP_HUMIDITY_LOW, "tipHumidityLow"));
   }
@@ -66,8 +82,13 @@ function pickTip(humidity, rain, cloud) {
   return tips.join(" ");
 }
 
-// 습도 우선, 없으면 구름양 기준, 둘 다 없으면 무작위로 음식 추천
-function pickFood(humidity, cloud) {
+// 기온 우선, 없으면 습도, 없으면 구름양 기준, 다 없으면 무작위로 음식 추천
+function pickFood(temp, humidity, cloud) {
+  if (temp !== null) {
+    return temp < 18
+      ? pickFromPool(FOOD_WARM, "foodWarm")
+      : pickFromPool(FOOD_COOL, "foodCool");
+  }
   if (humidity !== null) {
     return humidity >= 60
       ? pickFromPool(FOOD_COOL, "foodCool")
@@ -84,27 +105,14 @@ function pickFood(humidity, cloud) {
 }
 
 function buildScript(data) {
-  const { region, wind, humidity, cloud, rain } = data;
+  const { region, temp, wind, humidity, cloud, rain } = data;
 
   const parts = [];
 
   parts.push(fillTemplate(OPENING_LINE, { 지역: region }));
 
-  if (humidity !== null) {
-    parts.push(fillTemplate(pickFromPool(HUMIDITY_LINES, "humidity"), { 습도: humidity }));
-  }
-  if (wind) {
-    parts.push(fillTemplate(pickFromPool(WIND_LINES, "wind"), { 풍향: wind }));
-  }
-  if (cloud) {
-    parts.push(fillTemplate(pickFromPool(CLOUD_LINES, "cloud"), {
-      구름양: cloud,
-      로으로: josaRoEuro(cloud)
-    }));
-  }
-  if (rain !== null) {
-    parts.push(fillTemplate(pickFromPool(RAIN_LINES, "rain"), { 강수량: rain }));
-  }
+  const summary = buildWeatherSummary(temp, wind, humidity, cloud, rain);
+  if (summary) parts.push(summary);
 
   // 서술 모순 오류: 구름/강수 정보가 있을 때만, 실제와 반대로 단정하는 문장을 일부러 삽입
   if (cloud !== null || rain !== null) {
@@ -117,9 +125,9 @@ function buildScript(data) {
 
   // 생활 팁과 음식 추천 중 1개만 소개
   if (Math.random() < 0.5) {
-    parts.push(pickTip(humidity, rain, cloud));
+    parts.push(pickTip(temp, humidity, rain, cloud));
   } else {
-    parts.push(pickFood(humidity, cloud));
+    parts.push(pickFood(temp, humidity, cloud));
   }
 
   parts.push(pickFromPool(CLOSING_LINES, "closing"));
@@ -178,6 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const formError = document.getElementById("formError");
 
   const regionInput = document.getElementById("region");
+  const tempInput = document.getElementById("temp");
   const windInput = document.getElementById("wind");
   const humidityInput = document.getElementById("humidity");
   const cloudInput = document.getElementById("cloud");
@@ -193,6 +202,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   genBtn.addEventListener("click", function () {
     const region = regionInput.value.trim();
+    const tempRaw = tempInput.value;
     const wind = windInput.value.trim();
     const humidityRaw = humidityInput.value;
     const cloud = cloudInput.value.trim();
@@ -203,8 +213,8 @@ document.addEventListener("DOMContentLoaded", function () {
       formError.hidden = false;
       return;
     }
-    if (!wind && humidityRaw === "" && !cloud && rainRaw === "") {
-      formError.textContent = "바람, 습도, 구름의 양, 강수량 중 최소 한 가지는 입력해주세요.";
+    if (tempRaw === "" && !wind && humidityRaw === "" && !cloud && rainRaw === "") {
+      formError.textContent = "기온, 바람, 습도, 구름의 양, 강수량 중 최소 한 가지는 입력해주세요.";
       formError.hidden = false;
       return;
     }
@@ -212,6 +222,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const data = {
       region,
+      temp: tempRaw === "" ? null : Number(tempRaw),
       wind: wind || null,
       humidity: humidityRaw === "" ? null : Number(humidityRaw),
       cloud: cloud || null,

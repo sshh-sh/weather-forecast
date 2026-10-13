@@ -40,81 +40,100 @@ function fillTemplate(template, values) {
   return result;
 }
 
-function pickTip(avgTemp, rain, diff) {
-  const tips = [];
-  if (avgTemp < 10) tips.push(pickFromPool(TIP_COLD, "tipCold"));
-  else if (avgTemp >= 24) tips.push(pickFromPool(TIP_HOT, "tipHot"));
-  else tips.push(pickFromPool(TIP_MILD, "tipMild"));
+function isCloudMany(cloudText) {
+  return /많|흐림|잔뜩/.test(cloudText);
+}
 
-  if (rain > 0) tips.push(pickFromPool(TIP_RAIN, "tipRain"));
-  else if (diff >= 8) tips.push(pickFromPool(TIP_DIFF_BIG, "tipDiffBig"));
+// 습도/강수/구름 입력 여부에 따라 생활 팁을 조합 (아무것도 없으면 기본 팁)
+function pickTip(humidity, rain, cloud) {
+  const tips = [];
+
+  if (humidity !== null) {
+    if (humidity >= 60) tips.push(pickFromPool(TIP_HUMIDITY_HIGH, "tipHumidityHigh"));
+    else tips.push(pickFromPool(TIP_HUMIDITY_LOW, "tipHumidityLow"));
+  }
+
+  if (rain !== null && rain > 0) {
+    tips.push(pickFromPool(TIP_RAIN, "tipRain"));
+  } else if (cloud !== null && !isCloudMany(cloud)) {
+    tips.push(pickFromPool(TIP_SUNNY, "tipSunny"));
+  }
+
+  if (tips.length === 0) {
+    tips.push(pickFromPool(TIP_GENERIC, "tipGeneric"));
+  }
 
   return tips.join(" ");
 }
 
-function pickFood(avgTemp) {
-  if (avgTemp < 18) return pickFromPool(FOOD_WARM, "foodWarm");
-  return pickFromPool(FOOD_COOL, "foodCool");
+// 습도 우선, 없으면 구름양 기준, 둘 다 없으면 무작위로 음식 추천
+function pickFood(humidity, cloud) {
+  if (humidity !== null) {
+    return humidity >= 60
+      ? pickFromPool(FOOD_COOL, "foodCool")
+      : pickFromPool(FOOD_WARM, "foodWarm");
+  }
+  if (cloud !== null) {
+    return isCloudMany(cloud)
+      ? pickFromPool(FOOD_WARM, "foodWarm")
+      : pickFromPool(FOOD_COOL, "foodCool");
+  }
+  return Math.random() < 0.5
+    ? pickFromPool(FOOD_WARM, "foodWarm")
+    : pickFromPool(FOOD_COOL, "foodCool");
 }
 
-
 function buildScript(data) {
-  const { region, tempHigh, tempLow, wind, humidity, cloud, rain, rainChance } = data;
-  const avgTemp = Math.round((tempHigh + tempLow) / 2);
-  const diff = tempHigh - tempLow;
+  const { region, wind, humidity, cloud, rain, rainChance } = data;
 
-  const isBadWeather = rain > 0 || /많|흐림|잔뜩/.test(cloud);
+  const parts = [];
 
-  const greeting = pickFromPool(GREETINGS, "greeting");
-  const regionIntro = fillTemplate(pickFromPool(REGION_INTROS, "regionIntro"), {
+  parts.push(pickFromPool(GREETINGS, "greeting"));
+  parts.push(fillTemplate(pickFromPool(REGION_INTROS, "regionIntro"), {
     지역: region,
     은는: josaEunNeun(region)
-  });
-  const tempLine = fillTemplate(pickFromPool(TEMP_LINES, "temp"), {
-    최고기온: tempHigh,
-    최저기온: tempLow
-  });
-  const diffLine = fillTemplate(pickFromPool(DIFF_LINES, "diff"), { 일교차: diff });
-  const windLine = fillTemplate(pickFromPool(WIND_LINES, "wind"), { 풍향: wind });
-  const humidityLine = fillTemplate(pickFromPool(HUMIDITY_LINES, "humidity"), { 습도: humidity });
-  const cloudLine = fillTemplate(pickFromPool(CLOUD_LINES, "cloud"), {
-    구름양: cloud,
-    로으로: josaRoEuro(cloud)
-  });
-  const rainLine = fillTemplate(pickFromPool(RAIN_LINES, "rain"), { 강수량: rain });
-  const rainChanceLine = fillTemplate(pickFromPool(RAIN_CHANCE_LINES, "rainChance"), {
-    강수확률: rainChance
-  });
-  const tipLine = pickTip(avgTemp, rain, diff);
-  const foodLine = pickFood(avgTemp);
-  const closingLine = pickFromPool(CLOSING_LINES, "closing");
+  }));
 
-  // 서술 모순 오류 1개: 실제 날씨와 반대되는 소감을 일부러 삽입
-  const moodLine = isBadWeather
-    ? pickFromPool(MOOD_GOOD_LINES, "moodGood")
-    : pickFromPool(MOOD_BAD_LINES, "moodBad");
+  if (humidity !== null) {
+    parts.push(fillTemplate(pickFromPool(HUMIDITY_LINES, "humidity"), { 습도: humidity }));
+  }
+  if (wind) {
+    parts.push(fillTemplate(pickFromPool(WIND_LINES, "wind"), { 풍향: wind }));
+  }
+  if (cloud) {
+    parts.push(fillTemplate(pickFromPool(CLOUD_LINES, "cloud"), {
+      구름양: cloud,
+      로으로: josaRoEuro(cloud)
+    }));
+  }
+  if (rain !== null) {
+    parts.push(fillTemplate(pickFromPool(RAIN_LINES, "rain"), { 강수량: rain }));
+  }
 
-  // 서술 모순 오류 1개: 강수확률과 반대되는 단정 문장을 일부러 삽입
-  const rainChanceWrongLine = rainChance >= 50
-    ? pickFromPool(RAIN_CHANCE_WRONG_DRY, "rainChanceWrongDry")
-    : pickFromPool(RAIN_CHANCE_WRONG_WET, "rainChanceWrongWet");
+  // 서술 모순 오류: 구름/강수 정보가 있을 때만, 실제와 반대로 단정하는 문장을 일부러 삽입
+  if (cloud !== null || rain !== null) {
+    const isBadWeather = (rain !== null && rain > 0) || (cloud !== null && isCloudMany(cloud));
+    const moodLine = isBadWeather
+      ? pickFromPool(MOOD_GOOD_LINES, "moodGood")
+      : pickFromPool(MOOD_BAD_LINES, "moodBad");
+    parts.push(moodLine);
+  }
 
-  return [
-    greeting,
-    regionIntro,
-    tempLine,
-    diffLine,
-    windLine,
-    humidityLine,
-    cloudLine,
-    rainLine,
-    moodLine,
-    tipLine,
-    foodLine,
-    rainChanceLine,
-    rainChanceWrongLine,
-    closingLine
-  ].join(" ");
+  parts.push(pickTip(humidity, rain, cloud));
+  parts.push(pickFood(humidity, cloud));
+
+  if (rainChance !== null) {
+    parts.push(fillTemplate(pickFromPool(RAIN_CHANCE_LINES, "rainChance"), { 강수확률: rainChance }));
+    // 서술 모순 오류: 강수확률과 반대되는 단정 문장을 일부러 삽입
+    const rainChanceWrongLine = rainChance >= 50
+      ? pickFromPool(RAIN_CHANCE_WRONG_DRY, "rainChanceWrongDry")
+      : pickFromPool(RAIN_CHANCE_WRONG_WET, "rainChanceWrongWet");
+    parts.push(rainChanceWrongLine);
+  }
+
+  parts.push(pickFromPool(CLOSING_LINES, "closing"));
+
+  return parts.join(" ");
 }
 
 function typeText(el, text, onDone) {
@@ -132,15 +151,33 @@ function typeText(el, text, onDone) {
   step();
 }
 
-function matchChatKeyword(text) {
-  const lower = text.trim();
-  if (!lower) return null;
-  for (const qa of CHAT_QA) {
-    for (const kw of qa.keywords) {
-      if (lower.includes(kw)) return qa.answer;
+function findChatTopic(text) {
+  for (const topic of CHAT_TOPICS) {
+    for (const kw of topic.keywords) {
+      if (text.includes(kw)) return topic;
     }
   }
   return null;
+}
+
+function matchChatKeyword(text) {
+  const q = text.trim();
+  if (!q) return null;
+
+  const topic = findChatTopic(q);
+  if (!topic) return null;
+
+  if (topic.high && CHAT_HIGH_WORDS.some(w => q.includes(w))) return topic.high;
+  if (topic.low && CHAT_LOW_WORDS.some(w => q.includes(w))) return topic.low;
+  return topic.general;
+}
+
+function answerForQuickButton(btnDef) {
+  const topic = CHAT_TOPICS.find(t => t.id === btnDef.topicId);
+  if (!topic) return DEFAULT_CHAT_ANSWER;
+  if (btnDef.variant === "high") return topic.high || topic.general;
+  if (btnDef.variant === "low") return topic.low || topic.general;
+  return topic.general;
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -150,8 +187,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const formError = document.getElementById("formError");
 
   const regionInput = document.getElementById("region");
-  const tempHighInput = document.getElementById("tempHigh");
-  const tempLowInput = document.getElementById("tempLow");
   const windInput = document.getElementById("wind");
   const humidityInput = document.getElementById("humidity");
   const cloudInput = document.getElementById("cloud");
@@ -168,26 +203,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
   genBtn.addEventListener("click", function () {
     const region = regionInput.value.trim();
-    const tempHigh = tempHighInput.value;
-    const tempLow = tempLowInput.value;
     const wind = windInput.value.trim();
-    const humidity = humidityInput.value;
+    const humidityRaw = humidityInput.value;
     const cloud = cloudInput.value.trim();
-    const rain = rainInput.value;
-    const rainChance = rainChanceInput.value;
+    const rainRaw = rainInput.value;
+    const rainChanceRaw = rainChanceInput.value;
 
-    if (!region || tempHigh === "" || tempLow === "" || !wind || humidity === "" || !cloud || rain === "" || rainChance === "") {
-      formError.textContent = "모든 칸을 채워주세요.";
+    if (!region) {
+      formError.textContent = "지역은 꼭 입력해주세요.";
       formError.hidden = false;
       return;
     }
-    if (Number(rainChance) < 0 || Number(rainChance) > 100) {
+    if (!wind && humidityRaw === "" && !cloud && rainRaw === "" && rainChanceRaw === "") {
+      formError.textContent = "바람, 습도, 구름의 양, 강수량, 강수확률 중 최소 한 가지는 입력해주세요.";
+      formError.hidden = false;
+      return;
+    }
+    if (rainChanceRaw !== "" && (Number(rainChanceRaw) < 0 || Number(rainChanceRaw) > 100)) {
       formError.textContent = "강수확률은 0에서 100 사이로 입력해주세요.";
-      formError.hidden = false;
-      return;
-    }
-    if (Number(tempLow) > Number(tempHigh)) {
-      formError.textContent = "최저기온이 최고기온보다 높을 수 없어요.";
       formError.hidden = false;
       return;
     }
@@ -195,13 +228,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const data = {
       region,
-      tempHigh: Number(tempHigh),
-      tempLow: Number(tempLow),
-      wind,
-      humidity: Number(humidity),
-      cloud,
-      rain: Number(rain),
-      rainChance: Number(rainChance)
+      wind: wind || null,
+      humidity: humidityRaw === "" ? null : Number(humidityRaw),
+      cloud: cloud || null,
+      rain: rainRaw === "" ? null : Number(rainRaw),
+      rainChance: rainChanceRaw === "" ? null : Number(rainChanceRaw)
     };
 
     const script = buildScript(data);
@@ -226,11 +257,11 @@ document.addEventListener("DOMContentLoaded", function () {
   const chatInput = document.getElementById("chatInput");
   const chatAskBtn = document.getElementById("chatAskBtn");
 
-  CHAT_QA.forEach(function (qa) {
+  CHAT_QUICK_BUTTONS.forEach(function (btnDef) {
     const btn = document.createElement("button");
-    btn.textContent = qa.question;
+    btn.textContent = btnDef.label;
     btn.addEventListener("click", function () {
-      chatAnswer.textContent = qa.answer;
+      chatAnswer.textContent = answerForQuickButton(btnDef);
     });
     chatQuickBtns.appendChild(btn);
   });
